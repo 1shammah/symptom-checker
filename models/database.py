@@ -294,62 +294,120 @@ class Database:
     
     #get all symptoms for a given disease
     def get_symptoms_by_disease(self, disease_name):
-        self.cur.execute("""
-            SELECT symptoms.symptom_name
-            FROM symptoms
-            JOIN symptom_disease ON symptoms.id = symptom_disease.symptom_id
-            JOIN diseases ON symptom_disease.disease_id = diseases.id
-            WHERE diseases.disease_name = ?
-        """, (disease_name,))
-        return [row[0] for row in self.cur.fetchall()]
+        try:
+            
+            self.cur.execute("""
+                SELECT symptoms.symptom_name
+                FROM symptoms
+                JOIN symptom_disease ON symptoms.id = symptom_disease.symptom_id
+                JOIN diseases ON symptom_disease.disease_id = diseases.id
+                WHERE diseases.disease_name = ?
+            """, (disease_name,))
+            return [row[0] for row in self.cur.fetchall()]
+        
+        except Exception as e:
+            print(f"Error fetching symptoms for disease '{disease_name}': {e}")
+            return []
     
     #get all diseases for a given symptom
     def get_diseases_by_symptom(self, symptom_name):
-        self.cur.execute("""
-            SELECT diseases.disease_name
-            FROM diseases
-            JOIN symptom_disease ON diseases.id = symptom_disease.disease_id
-            JOIN symptoms ON symptom_disease.symptom_id = symptoms.id
-            WHERE symptoms.symptom_name = ?
-        """, (symptom_name,))
-        return [row[0] for row in self.cur.fetchall()]
+        try:
+            self.cur.execute("""
+                SELECT diseases.disease_name
+                FROM diseases
+                JOIN symptom_disease ON diseases.id = symptom_disease.disease_id
+                JOIN symptoms ON symptom_disease.symptom_id = symptoms.id
+                WHERE symptoms.symptom_name = ?
+            """, (symptom_name,))
+            return [row[0] for row in self.cur.fetchall()]
+        
+        except Exception as e:
+            print(f"Error fetching diseases for symptom '{symptom_name}': {e}")
+            return []
     
 
     #gert all symptom descriptions for a given symptom
     def get_description_by_symptom(self, symptom_name):
-        self.cur.execute("""
-            SELECT symptoms.description
-            FROM symptoms
-            WHERE symptoms.symptom_name = ?
-        """, (symptom_name,))
+        try:
+        
+            self.cur.execute("""
+                SELECT symptoms.description
+                FROM symptoms
+                WHERE symptoms.symptom_name = ?
+            """, (symptom_name,))
 
-        row = self.cur.fetchone()
-        return row[0] if row else None
+            row = self.cur.fetchone()
+            return row[0] if row else None
+    
+        except Exception as e:
+            print(f"Error fetching description for symptom '{symptom_name}': {e}")
+            return None
 
     #get all precautions for a given disease
     def get_precautions_by_disease(self, disease_name):
-        self.cur.execute("""
-            SELECT symptom_precautions.precaution_steps
-            FROM symptom_precautions
-            JOIN diseases ON symptom_precautions.disease_id = diseases.id
-            WHERE diseases.disease_name = ?
-        """, (disease_name,))
+        try:
 
-        row = self.cur.fetchone()
-        return row[0].split(', ') if row else None
+            self.cur.execute("""
+                SELECT symptom_precautions.precaution_steps
+                FROM symptom_precautions
+                JOIN diseases ON symptom_precautions.disease_id = diseases.id
+                WHERE diseases.disease_name = ?
+            """, (disease_name,))
+
+            row = self.cur.fetchone()
+            return row[0].split(', ') if row else None
+    
+        except Exception as e:
+            print(f"Error fetching precautions for disease '{disease_name}': {e}")
+            return None
 
     #get all severity levels for a given symptom
     def get_severity_by_symptom(self, symptom_name):
-        self.cur.execute("""
-            SELECT symptom_severity.severity_level
-            FROM symptom_severity
-            JOIN symptoms ON symptom_severity.symptom_id = symptoms.id
-            WHERE symptoms.symptom_name = ?
-        """, (symptom_name,))
+        try:
+        
+            self.cur.execute("""
+                SELECT symptom_severity.severity_level
+                FROM symptom_severity
+                JOIN symptoms ON symptom_severity.symptom_id = symptoms.id
+                WHERE symptoms.symptom_name = ?
+            """, (symptom_name,))
 
-        row = self.cur.fetchone()
-        return row[0] if row else None
+            row = self.cur.fetchone()
+            return row[0] if row else None
     
+        except Exception as e:
+            print(f"Error fetching severity for symptom '{symptom_name}': {e}")
+            return None
+
+    
+    # Helper function to prepare disease-symptom data for AI training.
+    # Returns a DataFrame where each row represents a disease and all its associated symptoms
+    # concatenated into a single string. This format is ideal for content-based filtering using
+    # TF-IDF and cosine similarity in the Recommender model.
+    
+    def get_disease_symptom_matrix(self):
+        """Returns a DataFrame with diseases and associated symptoms as as single string. for AI training."""
+
+        try:
+            # fetch all disease -> symptom pairs
+            self.cur.execute("""
+                SELECT diseases.disease_name, symptoms.symptom_name
+                FROM diseases
+                JOIN symptom_disease ON diseases.id = symptom_disease.disease_id
+                JOIN symptoms ON symptom_disease.symptom_id = symptoms.id
+            """)
+
+            rows = self.cur.fetchall()
+
+            #group symptoms by disease
+            df = pd.DataFrame(rows, columns=["disease", "symptom"])
+            grouped = df.groupby("disease")["symptom"].apply(lambda x: ' '.join(sorted(set(x)))).reset_index()
+
+            return grouped
+        
+        except Exception as e:
+            print(f"Error generating disease-symptom matrix: {e}")
+            return pd.DataFrame()
 
 
 #create tables if they don't exist
