@@ -14,7 +14,6 @@ class Database:
 
         self.cur.execute("PRAGMA foreign_keys = ON") #enable foreign key constraints
 
-        #do i need this or should i check if table created
     def create_tables(self):
         """Drop existent tables and create new ones for testing and dev purposes"""
 
@@ -207,25 +206,25 @@ class Database:
             # Fetch symptom IDs
             self.cur.execute("SELECT id, symptom_name FROM symptoms")
             symptom_map = {name.strip(): id for id, name in self.cur.fetchall()}
-
         
             # Prepare symptom description data for insertion
             description_data = []
+            
             for _, row in df_description.iterrows():
                 symptom_name = row['Disease'].strip()
                 description = row['Description'].strip()
 
-            # Only add description if symptom exists
-            symptom_id = symptom_map.get(symptom_name)
-            if symptom_id:
-                description_data.append((symptom_id, description))
+                # Only add description if symptom exists
+                symptom_id = symptom_map.get(symptom_name)
+                if symptom_id:
+                    description_data.append((description, symptom_id))
 
             #update sytmpom table with description
 
             self.cur.executemany("UPDATE symptoms SET description = ? WHERE id = ?", description_data)
 
             self.conn.commit()
-            print("Symptom descriptions loaded successfully from symptom_Description.csv")
+            print(f"Symptom descriptions loaded successfully from symptom_Description.csv. Total records updated: {len(description_data)}")
 
         except Exception as e:
             print(f"Error loading symptom descriptions: {e}")
@@ -282,6 +281,76 @@ class Database:
             self.conn.rollback()
 
 
+    
+    #get all diseases from the database
+    def get_all_diseases(self):    
+        self.cur.execute("SELECT * FROM diseases")
+        return self.cur.fetchall()
+    
+    #get all symptoms from the database
+    def get_all_symptoms(self):
+        self.cur.execute("SELECT * FROM symptoms")
+        return self.cur.fetchall()
+    
+    #get all symptoms for a given disease
+    def get_symptoms_by_disease(self, disease_name):
+        self.cur.execute("""
+            SELECT symptoms.symptom_name
+            FROM symptoms
+            JOIN symptom_disease ON symptoms.id = symptom_disease.symptom_id
+            JOIN diseases ON symptom_disease.disease_id = diseases.id
+            WHERE diseases.disease_name = ?
+        """, (disease_name,))
+        return [row[0] for row in self.cur.fetchall()]
+    
+    #get all diseases for a given symptom
+    def get_diseases_by_symptom(self, symptom_name):
+        self.cur.execute("""
+            SELECT diseases.disease_name
+            FROM diseases
+            JOIN symptom_disease ON diseases.id = symptom_disease.disease_id
+            JOIN symptoms ON symptom_disease.symptom_id = symptoms.id
+            WHERE symptoms.symptom_name = ?
+        """, (symptom_name,))
+        return [row[0] for row in self.cur.fetchall()]
+    
+
+    #gert all symptom descriptions for a given symptom
+    def get_description_by_symptom(self, symptom_name):
+        self.cur.execute("""
+            SELECT symptoms.description
+            FROM symptoms
+            WHERE symptoms.symptom_name = ?
+        """, (symptom_name,))
+
+        row = self.cur.fetchone()
+        return row[0] if row else None
+
+    #get all precautions for a given disease
+    def get_precautions_by_disease(self, disease_name):
+        self.cur.execute("""
+            SELECT symptom_precautions.precaution_steps
+            FROM symptom_precautions
+            JOIN diseases ON symptom_precautions.disease_id = diseases.id
+            WHERE diseases.disease_name = ?
+        """, (disease_name,))
+
+        row = self.cur.fetchone()
+        return row[0].split(', ') if row else None
+
+    #get all severity levels for a given symptom
+    def get_severity_by_symptom(self, symptom_name):
+        self.cur.execute("""
+            SELECT symptom_severity.severity_level
+            FROM symptom_severity
+            JOIN symptoms ON symptom_severity.symptom_id = symptoms.id
+            WHERE symptoms.symptom_name = ?
+        """, (symptom_name,))
+
+        row = self.cur.fetchone()
+        return row[0] if row else None
+    
+
 
 #create tables if they don't exist
 db = Database()
@@ -292,3 +361,6 @@ db.load_diseases_and_symptoms()
 db.load_symptom_severity()
 db.load_symptom_descriptions()
 db.load_symptom_precautions()
+
+#close the connection to the database
+#db.conn.close()
