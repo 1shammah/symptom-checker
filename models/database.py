@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st # do i need this import here?
 import pandas as pd
 import sqlite3
 
@@ -10,8 +10,8 @@ class Database:
         #tables already created in DB Browser
         self.dbname = dbname
         self.conn = sqlite3.connect(dbname)
+        self.conn.row_factory = sqlite3.Row #allows us to access columns by name
         self.cur = self.conn.cursor()
-
         self.cur.execute("PRAGMA foreign_keys = ON") #enable foreign key constraints
 
     def create_tables(self):
