@@ -408,6 +408,106 @@ class Database:
         except Exception as e:
             print(f"Error generating disease-symptom matrix: {e}")
             return pd.DataFrame()
+        
+
+    ## Helper functions for users
+
+    def add_user(self, name, email, hashed_password, gender="Other", role="User"):
+        """
+        Adds a new user to the database.
+
+        Parameters:
+        - name (str): The full name of the user.
+        - email (str): unique user email.
+        - hashed_password (str): The hashed password of the user. 
+          Ensure this is securely hashed using a library like bcrypt
+        - gender (str): The gender of the user. Defaults to "Other".
+        - role (str): The role of the user ('user' or 'admin'). Defaults to 'User'.
+
+        Returns:
+        - bool: True if the user was added successfully, False otherwise.
+        """    
+
+        try:
+            self.cur.execute("""
+                INSERT INTO users (name, email, password, gender, role) VALUES (?, ?, ?, ?, ?)""",
+                (name, email, hashed_password, gender, role))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error adding user: {e}")
+            return False
+            
+    def get_user_by_email(self, email):
+        """
+        Fetches a user record from the database by their email.
+
+        Parameters:
+        - email (str): The email of the user to fetch.
+
+        Returns:
+        - sqlite3.Row | None: The user record if found, otherwise None.
+        """
+        
+        try:
+            self.cur.execute("SELECT * FROM users WHERE email = ?", (email,))
+            return self.cur.fetchone()
+        except Exception as e:
+            print(f"Error fetching user by email '{email}': {e}")
+            return None
+        
+
+    def email_exists(self,email):
+        """
+        Checks if an email already exists in the database.
+
+        Parameters:
+        - email (str): The email to check.
+
+        Returns:
+        - bool: True if the email exists, False otherwise.
+        """
+        
+        try:
+            self.cur.execute("SELECT 1 FROM users WHERE email = ?", (email,))
+            return self.cur.fetchone() is not None
+        except Exception as e:
+            print(f"Error checking if email '{email}' exists: {e}")
+            return False
+
+    def get_user_by_id(self, user_id):
+        """
+        Fetches a user from the database by their ID.
+
+        Parameters:
+        - user_id (int): The ID of the user to fetch.
+
+        Returns:
+        - sqlite3.Row | None: The user record if found, otherwise None.
+        """
+        
+        try:
+            self.cur.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            return self.cur.fetchone()
+        except Exception as e:  
+            print(f"Error fetching user by ID: {e}")
+            return None
+        
+    
+    def get_all_users(self):
+        """
+        Fetches all users from the database. For admin use.
+
+        Returns:
+        - list[sqlite3.Row]: A list of all user records.
+        """
+        
+        try:
+            self.cur.execute("SELECT * FROM users")
+            return self.cur.fetchall()
+        except Exception as e:
+            print(f"Error fetching all users: {e}")
+            return []
 
 
 #create tables if they don't exist
