@@ -1,4 +1,4 @@
-import streamlit as st # do i need this import here?
+from typing import Optional
 import pandas as pd
 import sqlite3
 
@@ -91,6 +91,7 @@ class Database:
                                 FOREIGN KEY (user_id) REFERENCES users(id)
                             )
                         """)
+        # symptom_checks table is not used. I am not storing user history for now
         
         self.conn.commit()
 
@@ -303,7 +304,7 @@ class Database:
                 JOIN diseases ON symptom_disease.disease_id = diseases.id
                 WHERE diseases.disease_name = ?
             """, (disease_name,))
-            return [row[0] for row in self.cur.fetchall()]
+            return [row["symptom_name"] for row in self.cur.fetchall()]
         
         except Exception as e:
             print(f"Error fetching symptoms for disease '{disease_name}': {e}")
@@ -319,7 +320,7 @@ class Database:
                 JOIN symptoms ON symptom_disease.symptom_id = symptoms.id
                 WHERE symptoms.symptom_name = ?
             """, (symptom_name,))
-            return [row[0] for row in self.cur.fetchall()]
+            return [row["disease_name"] for row in self.cur.fetchall()]
         
         except Exception as e:
             print(f"Error fetching diseases for symptom '{symptom_name}': {e}")
@@ -337,7 +338,7 @@ class Database:
             """, (symptom_name,))
 
             row = self.cur.fetchone()
-            return row[0] if row else None
+            return row["description"] if row else None
     
         except Exception as e:
             print(f"Error fetching description for symptom '{symptom_name}': {e}")
@@ -355,7 +356,7 @@ class Database:
             """, (disease_name,))
 
             row = self.cur.fetchone()
-            return row[0].split(', ') if row else None
+            return row["precaution_steps"].split(', ') if row else None
     
         except Exception as e:
             print(f"Error fetching precautions for disease '{disease_name}': {e}")
@@ -373,7 +374,7 @@ class Database:
             """, (symptom_name,))
 
             row = self.cur.fetchone()
-            return row[0] if row else None
+            return row["severity_level"] if row else None
     
         except Exception as e:
             print(f"Error fetching severity for symptom '{symptom_name}': {e}")
@@ -509,6 +510,80 @@ class Database:
             print(f"Error fetching all users: {e}")
             return []
 
+## helper methods for CRUD actions in the user model
+
+    def update_user(self, user_id: int, name: str, gender: str) -> bool:
+        """
+        Updates user's name and gender
+        Email not included. It's a unique identifier. Changing would require reverifying the new email.
+
+        Returns:
+        - bool: True if the update was successful, False otherwise.
+        """
+
+        try:
+            self.cur.execute("""
+                UPDATE users
+                SET name = ?, gender =  ?
+                WHERE id = ?             
+                """, (name, gender, user_id))
+            self.conn.commit()
+            return self.cur.rowcount > 0
+        except Exception as e:
+            print(f"Error updatiing profile: {e}")
+            return False
+        
+    def update_user_password(self, user_id: int, hashed_password: str) -> bool:
+        """
+        Updates user's password. Password must already be hashed with bcrypt.
+
+        Returns:
+        - bool: True if the update was successful, False otherwise.
+        """
+
+        try:
+            self.cur.execute("""
+                UPDATE users
+                SET password = ?
+                WHERE id = ?
+                """, (hashed_password, user_id))
+            self.conn.commit()
+            return self.cur.rowcount > 0
+        except Exception as e:
+            print(f"Error updating password: {e}")
+            return False
+        
+    def get_user_password_hash(self, user_id: int) -> Optional[str]:
+        """
+        Fetches the stored hashed password for password comparison when updating/deleting
+        
+        Returns:
+            str | None: The hashed password if found, otherwise None.
+
+        """
+
+        try:
+            self.cur.execute("SELECT password FROM users WHERE id = ?", (user_id,))
+            row = self.cur.fetchone()
+            return row["password"] if row else None
+        except Exception as e:
+            print(f"Error fetching user password hash: {e}")
+            return None
+        
+    def delete_user_by_id(self, user_id: int) -> bool:
+        """
+        Deletes the user account by ID. This is irreversible.should be protected by authentication
+        
+        Returns:
+            bool: True if the deletion was successful, False otherwise.
+        """
+        try:
+            self.cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            self.conn.commit()
+            return self.cur.rowcount > 0
+        except Exception as e:
+            print(f"Error deleting user: {e}")
+            return False
 
 #create tables if they don't exist
 db = Database()

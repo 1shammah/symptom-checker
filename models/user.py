@@ -3,6 +3,7 @@
 # securely handle password hashing and verification
 # encapsulate login and registration logic
 # user helper methods from db for SoC
+# handles crud operations for user data
 
 from database import Database
 from dataclasses import dataclass
@@ -49,8 +50,6 @@ class UserModel:
         except Exception as e:
             print(f"Error registering user: {e}")
             return False
-        
-    # should we do a login method here?
 
 
     def authenticate_user(self, email: str, password: str) -> Optional[User]:
@@ -75,7 +74,7 @@ class UserModel:
             return None
 
         except Exception as e:
-            print(f"Error authenicating user: {e}")
+            print(f"Error authenticating user: {e}")
             return None
 
     def get_user_by_id(self, user_id: int) -> Optional[User]:
@@ -115,4 +114,54 @@ class UserModel:
         except Exception as e:
             print(f"Error retrieving user role: {e}")
             return None
+
+    def update_user(self, user_id: int, name: str, gender: str) -> bool:
+        """
+        Updates the user's name and gender
+        
+        Returns:
+            bool: True if update is successful, False otherwise
+        """
+        try:
+            return self.db.update_user(user_id, name, gender)
+        except Exception as e:
+            print(f"Error updating user {user_id}: {e}")
+            return False
+    
+    def change_password(self, user_id: int, old_password: str, new_password: str) -> bool:
+
+        """
+        Verifies old password before updating to a new password
+        
+        Returns:
+            bool: True if password change is successful, False otherwise
+        """
+
+        try:
+            stored_hash = self.db.get_user_password(user_id)
+            if stored_hash and bcrypt.checkpw(old_password.encode('utf-8'), stored_hash.encode('utf-8')):
+                new_hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                return self.db.update_user_password(user_id, new_hashed)
+            return False
+        except Exception as e:
+            print(f"Error changing password: {e}")
+            return False
+
+    def delete_user(self, user_id: int, password: str) -> bool:
+        """
+        Verifies user password before allowing deletion
+        
+        Returns:
+            bool: True if account deleted successfully, False otherwise
+        
+        """
+
+        try:
+            stored_hash = self.db.get_user_password(user_id)
+            if stored_hash and bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+                return self.db.delete_user(user_id)
+            return False
+        except Exception as e:
+            print(f"Error deleting user: {e}")
+            return False
 
