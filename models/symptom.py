@@ -5,6 +5,12 @@
 # search/filter symptoms
 # preprocess for the recommender (lowercase,remove duplicates, join with spaces, etc)
 
+
+# potential crud operations for symptoms (if needed)
+# add_symptom() – useful if I allow admins to expand the dataset manually.
+# delete_symptom() – for cleaning incorrect entries.
+# update_symptom() – for correcting or updating existing entries.
+
 from dataclasses import dataclass
 from typing import List, Optional
 from database import Database

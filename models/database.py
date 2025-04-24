@@ -387,7 +387,7 @@ class Database:
     # TF-IDF and cosine similarity in the Recommender model.
     
     def get_disease_symptom_matrix(self):
-        """Returns a DataFrame with diseases and associated symptoms as as single string. for AI training."""
+        """Returns a DataFrame with diseases and associated symptoms as a single string. for AI training."""
 
         try:
             # fetch all disease -> symptom pairs
@@ -584,6 +584,83 @@ class Database:
         except Exception as e:
             print(f"Error deleting user: {e}")
             return False
+        
+
+# helper methods for admin model
+
+    def set_user_role(self, user_id: int, role: str) -> bool:
+        """
+        sets a user's role to (User/Admin)
+        """
+        try:
+            self.cur.execute("UPDATE users SET role = ? WHERE id = ?", (role, user_id))
+            self.conn.commit()
+            return self.cur.rowcount > 0
+        except Exception as e:
+            print(f"Error setting user role: {e}")
+            return False
+        
+# helper methods for analytics model
+
+    def get_user_count(self) -> int:
+        """
+        Returns the total number of users in the system
+        """
+        try:
+            self.cur.execute("SELECT COUNT(*) AS total FROM users")
+            return self.cur.fetchone()["total"]
+        except Exception as e:
+            print(f"Error countinf users: {e}")
+            return 0
+        
+    def get_symptom_count(self) -> int:
+        """
+        Returns the total number of symptoms
+        """
+
+        try:
+            self.cur.execute("SELECT COUNT(*) AS total FROM symptoms")
+            return self.cur.fetchone()["total"]
+        except Exception as e:
+            print(f"Error counting symptoms: {e}")
+            return 0
+        
+
+    def get_disease_count(self) -> int:
+        """
+        Returns the total number of diseases in the system
+        """
+        try:
+            self.cur.execute("SELECT COUNT(*) AS total FROM diseases")
+            return self.cur.fetchone()["total"]
+        except Exception as e:
+            print(f"Error counting diseases: {e}")
+            return 0
+        
+    
+    
+    # While the symptom_checks table and corresponding analytics like 
+    # get_most_common_predictions() are not in active use due to ethical constraints, 
+    # they have been scaffolded into the system for potential post-clearance deployment.
+    def get_most_common_predictions(self, limit=5):
+        """
+        Returns the most frequently predicted diseases
+        Requires the symptom_checks table to be evenutally implemented
+        """
+
+        try:
+            self.cur.execute("""
+                SELECT predicted_disease, COUNT(*) AS frequency
+                FROM symptom_checks
+                GROUP BY predicted_disease
+                ORDER BY frequency DESC
+                LIMIT ?
+                """, (limit,))
+            return self.cur.fetchall()
+        except Exception as e:
+            print(f"Error fetching most common predictions: {e}")
+            return []
+
 
 #create tables if they don't exist
 db = Database()
