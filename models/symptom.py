@@ -1,19 +1,12 @@
-#logic around symptom objects, filterring, scoring, matching etc
-# fetch and structure symptom data from the database
-# fetch by name or id
-# combine symptom metadata (name, description, severity)
-# search/filter symptoms
-# preprocess for the recommender (lowercase,remove duplicates, join with spaces, etc)
-
-
-# potential crud operations for symptoms (if needed)
-# add_symptom() – useful if I allow admins to expand the dataset manually.
-# delete_symptom() – for cleaning incorrect entries.
-# update_symptom() – for correcting or updating existing entries.
-
 from dataclasses import dataclass
 from typing import List, Optional
 from models.database import Database
+
+## test for removing white soace failed. two soaces were converetd to two underscores when I want one. issue in replace()
+## have to use regex to remove all whitespace and replace with one underscore.
+# import regular expressions as re
+
+import re
 
 # dataclass to represent a structured symptom object
 @dataclass
@@ -94,11 +87,34 @@ class SymptomModel:
         """
 
         try:
-            cleaned_symptoms = [
-                s.strip().lower().replace(' ', '_') #replace spaces with underscores for TF-IDF vectorization
-                for s in symptoms if s and isinstance(s, str)  #ensure no empty strings or non-string types are included. isinstance checks for str type
-            ]
-            return ' '.join(sorted(set(cleaned_symptoms))) #remove duplicates and sort the list
+            cleaned_symptom_tokens = []
+
+            # 1) Loop through every raw symptom input
+            for raw_symptom in symptoms:
+                
+                # Only handle it if it's a string
+                if isinstance(raw_symptom, str):
+                    # Remove leading/trailing spaces and lowercase it
+                    stripped = raw_symptom.strip().lower()
+
+                    # If that results in an empty string, skip it entirely
+                    if not stripped:
+                        continue
+
+                    # Collapse any run of whitespace (spaces, tabs, etc.)
+                    # into a single underscore
+                    collapsed = re.sub(r"\s+", "_", stripped)
+
+                    # Collect the cleaned-up token
+                    cleaned_symptom_tokens.append(collapsed)
+
+            # 2) Remove duplicates; sorted() gives us alphabetical order
+            unique_sorted_tokens = sorted(set(cleaned_symptom_tokens))
+
+            # 3) Join them back into one string with single spaces
+            result = " ".join(unique_sorted_tokens)
+
+            return result
 
         except Exception as e:
             print(f"Error preprocessing symptoms: {e}")
