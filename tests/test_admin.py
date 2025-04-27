@@ -112,3 +112,7 @@ class TestAdminModel(unittest.TestCase):
         
         self.assertFalse(self.model.delete_user("not_an_int"))
         self.assertFalse(self.model.delete_user(None))
+
+
+if __name__ == "__main__":
+    unittest.main()
