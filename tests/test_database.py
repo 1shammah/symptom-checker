@@ -4,7 +4,6 @@
 # using an in-memory SQLite database for testing ":memory:". Manually seeding the database with test data.
 
 import unittest
-import sqlite3
 from models.database import Database
 
 class TestDatabaseHelper(unittest.TestCase):

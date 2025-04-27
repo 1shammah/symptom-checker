@@ -13,7 +13,7 @@
 
 from dataclasses import dataclass
 from typing import List, Optional
-from database import Database
+from models.database import Database
 
 # dataclass to represent a structured symptom object
 @dataclass

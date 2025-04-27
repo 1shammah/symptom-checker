@@ -5,7 +5,7 @@
 # user helper methods from db for SoC
 # handles crud operations for user data
 
-from database import Database
+from models.database import Database
 from dataclasses import dataclass
 from typing import Optional 
 import bcrypt

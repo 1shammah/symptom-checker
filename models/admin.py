@@ -3,7 +3,7 @@
 # separates business logic from controllers and views
 # resuses database helpers for user management
 
-from database import Database
+from models.database import Database
 from dataclasses import dataclass
 from typing import List, Optional 
 

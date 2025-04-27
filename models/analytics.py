@@ -63,7 +63,7 @@
 # uses pandas for data manipulation and analysis
 
 import pandas as pd
-from database import Database
+from models.database import Database
 
 class AnalyticsModel:
 
