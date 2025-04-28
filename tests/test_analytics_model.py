@@ -30,6 +30,7 @@ class TestAnalyticsModel(unittest.TestCase):
             "SELECT id FROM diseases WHERE disease_name = ?", ("DiseaseA",)
         ).fetchone()
         disease_a_id = disease_a_row["id"]
+        
         disease_b_row = self.db.cur.execute(
             "SELECT id FROM diseases WHERE disease_name = ?", ("DiseaseB",)
         ).fetchone()
@@ -39,6 +40,7 @@ class TestAnalyticsModel(unittest.TestCase):
             "SELECT id FROM symptoms WHERE symptom_name = ?", ("SymptomX",)
         ).fetchone()
         symptom_x_id = symptom_x_row["id"]
+        
         symptom_y_row = self.db.cur.execute(
             "SELECT id FROM symptoms WHERE symptom_name = ?", ("SymptomY",)
         ).fetchone()
@@ -107,10 +109,13 @@ class TestAnalyticsModel(unittest.TestCase):
 
     def test_get_symptom_disease_matrix(self):
         """ Should return a cross-tab matrix of diseases vs symptoms. """
+        
         matrix = self.analytics_model.get_symptom_disease_matrix()
+        
         # check index and columns
         self.assertListEqual(sorted(matrix.index.tolist()), ["DiseaseA", "DiseaseB"])
         self.assertListEqual(sorted(matrix.columns.tolist()), ["SymptomX", "SymptomY"])
+        
         # check cell values
         self.assertEqual(matrix.loc["DiseaseA", "SymptomX"], 1)
         self.assertEqual(matrix.loc["DiseaseA", "SymptomY"], 1)
@@ -119,6 +124,7 @@ class TestAnalyticsModel(unittest.TestCase):
 
     def test_get_symptom_severity_mapping(self):
         """ Should return all symptoms with their corresponding severity levels in descending order. """
+        
         result_frame = self.analytics_model.get_symptom_severity_mapping()
         expected = [
             {"Symptom": "SymptomY", "Severity Level": "4"},
