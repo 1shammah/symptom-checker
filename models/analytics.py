@@ -189,7 +189,7 @@ class AnalyticsModel:
             self.db.cur.execute("""
                 SELECT diseases.disease_name, symptoms.symptom_name
                 FROM symptom_disease
-                JOIN diseases ON symptom_disease.disease id = diseases.id
+                JOIN diseases ON symptom_disease.disease_id = diseases.id
                 JOIN symptoms ON symptom_disease.symptom_id = symptoms.id
             """)
             rows = self.db.cur.fetchall()
@@ -210,9 +210,14 @@ class AnalyticsModel:
             
         try:
             self.db.cur.execute("""
-                SELECT symptoms.symptom_name, symptom_severity.severity_level
-                FROM symptoms
-                JOIN symptom_severity ON symptoms.id = symptom_severity.symptom_id
+                SELECT s.symptom_name, ss.severity_level
+                FROM symptoms AS s
+                JOIN symptom_severity AS ss
+                ON s.id = ss.symptom_id
+                
+                -- Cast text to integer so ORDER BY works numerically
+                
+                ORDER BY CAST(ss.severity_level AS INTEGER) DESC
             """)
             rows = self.db.cur.fetchall()
             return pd.DataFrame(rows, columns=["Symptom", "Severity Level"])
