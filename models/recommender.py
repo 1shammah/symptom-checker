@@ -77,6 +77,10 @@ class RecommenderModel:
             list of (disease_name, similarity_score)
         """
 
+         # 1) Guard against mis-typed inputs
+        if not isinstance(selected_symptoms, list):
+            raise TypeError("selected_symptoms must be a list of symptom strings")
+        
         # ensure tf-idf vectoriser and matrix exist before recommending
         if self.vectorizer is None or self.tfidf_matrix is None:
             raise RuntimeError("RecommenderModel.fit() must be called before recommend()")
