@@ -1,7 +1,3 @@
-# paste rubric into the the chat and ask chat to summarise 
-# the content into it's relevant sections so you can get started 
-# on the write up.
-
 import unittest
 from models.database import Database
 from models.analytics import AnalyticsModel

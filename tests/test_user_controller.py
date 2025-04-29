@@ -19,7 +19,7 @@ class TestUserController(unittest.TestCase):
         self.controller.user_model = self.fake_user_model
 
 
-############# register_user() #############
+    ############# register_user() #############
 
     def test_register_user_success(self):
         """Should return True when model.register_user succeeds."""
@@ -72,7 +72,7 @@ class TestUserController(unittest.TestCase):
 
         self.assertFalse(result) 
 
-############# login_user() #############
+    ############# login_user() #############
 
     def test_login_user_success(self):
             """Should return a User when credentials are correct."""
@@ -105,7 +105,7 @@ class TestUserController(unittest.TestCase):
 
         self.assertIsNone(returned)
 
-############# get_profile() #############
+    ############# get_profile() #############
 
 
     def test_get_profile_found(self):
@@ -137,7 +137,7 @@ class TestUserController(unittest.TestCase):
 
         self.assertIsNone(returned)
 
-############# update_profile() #############
+    ############# update_profile() #############
 
     def test_update_profile_success(self):
         """Should return True when update_user succeeds."""
@@ -167,7 +167,7 @@ class TestUserController(unittest.TestCase):
 
         self.assertFalse(result)
 
-############# change_password() #############
+    ############# change_password() #############
 
     def test_change_password_success(self):
         """Should return True when change_password succeeds."""
@@ -211,7 +211,7 @@ class TestUserController(unittest.TestCase):
 
         self.assertFalse(result)
 
-############# delete_account() #############
+    ############# delete_account() #############
 
     def test_delete_account_success(self):
         """Should return True when delete_user succeeds."""
@@ -241,7 +241,7 @@ class TestUserController(unittest.TestCase):
 
         self.assertFalse(result)
 
-    ############# delete_account() #############
+    ############# logout() #############
 
     def test_logout_user_noop(self):
         """Should not raise when logout_user is called."""
