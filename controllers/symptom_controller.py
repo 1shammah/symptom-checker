@@ -13,50 +13,83 @@ class SymptomController:
         Args:
             db (Database): provides helper methods and connection.
         """
+        self.db = db
         self.model = SymptomModel(db)
 
-    def list_symptoms(self) -> List[Symptom]:
+    def list_all_symptoms(self) -> List[Symptom]:
         """
         Retrieve all symptoms.
-        Returns:
-            List[Symptom]: list of Symptom objects, empty on error.
+        Returns: List[Symptom]. a list of Symptom objects, empty on error.
         """
         try:
         
             return self.model.get_all()
         
-        except Exception as error:
-            print(f"SymptomController.list_symptoms error: {error}")
+        except Exception as e:
+            print(f"SymptomController.list_symptoms error: {e}")
             return []
 
-    def get_symptom(self, name: str) -> Optional[Symptom]:
+    def get_symptoms_for_disease(self, disease_name: str) -> List[str]:
         """
-        Retrieve a single symptom by name.
-        Args:
-            name (str): symptom name to fetch.
-        Returns:
-            Symptom or None: Symptom object if found, else None.
+        Retrieve names of all symptoms linked to a disease.
+        Returns: List[str]: List of symptom names, empty list on error.
+        """
+        try:
+            
+            return self.db.get_symptoms_by_disease(disease_name)
+        
+        except Exception as e:
+            print(f"SymptomController.get_symptoms_for_disease error: {e}")
+            return []
+
+    def get_diseases_for_symptom(self, symptom_name: str) -> List[str]:
+        """
+        Retrieve names of all diseases linked to a symptom.
+        Returns: List[str]: List of disease names, empty list on error.
+        """
+        try:
+            
+            return self.db.get_diseases_by_symptom(symptom_name)
+        
+        except Exception as e:
+            print(f"SymptomController.get_diseases_for_symptom error: {e}")
+            return []
+        
+    def get_precautions(self, disease_name: str) -> Optional[List[str]]:
+        """
+        Retrieve precaution steps for a disease.
+        Returns: List[str]: List of precautions, None on error.
         """
         try:
         
-            return self.model.get_by_name(name)
+            return self.db.get_precautions_by_disease(disease_name)
         
-        except Exception as error:
-            print(f"SymptomController.get_symptom error: {error}")
+        except Exception as e:
+            print(f"SymptomController.get_precautions error: {e}")
+            return None
+        
+    def get_description(self, symptom_name:str) -> Optional[str]:
+        """
+        Retrieve description of a specific symptom.
+        Returns: str: Description of the symptom, None on error.
+        """
+        try:
+        
+            return self.db.get_description_by_symptom(symptom_name)
+        
+        except Exception as e:
+            print(f"SymptomController.get_description error: {e}")
             return None
 
-    def preprocess_symptoms(self, raw_symptoms: List[str]) -> str:
+    def get_severity(self, symptom_name:str) -> Optional[str]:
         """
-        Prepare a list of raw symptom names for AI recommendation.
-        Args:
-            raw_symptoms (List[str]): raw input strings.
-        Returns:
-            str: cleaned, space-joined symptom string, or empty on error.
+        Retrieve severity of a specific symptom.
+        Returns: str: Severity of the symptom, None on error.
         """
         try:
         
-            return self.model.preprocess_symptoms(raw_symptoms)
+            return self.db.get_severity_by_symptom(symptom_name)
         
-        except Exception as error:
-            print(f"SymptomController.preprocess_symptoms error: {error}")
-            return ""
+        except Exception as e:
+            print(f"SymptomController.get_severity error: {e}")
+            return None
