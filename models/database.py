@@ -95,8 +95,6 @@ class Database:
         
         self.conn.commit()
 
-        #since tables are already created, do I have to call this function
-
     '''
     def load_csv_data_to_db(self, csv_path, table_name):  
         #load the csv data to the database
@@ -661,16 +659,24 @@ class Database:
             print(f"Error fetching most common predictions: {e}")
             return []
 
+# This function is a module level helper function that is top level so 
+# it only runs when the module is executed directly and csv data is not 
+# being fired everytime
 
-#create tables if they don't exist
-db = Database()
-db.create_tables()
+def initialise_database(dbname: str = "data/symptom_checker.db") -> Database:
+        """
+        Create the schema and populate the tables from CSV files.
+        Returns the Database instance for further use.
+        """
+        db = Database(dbname)
+        db.create_tables()
+        db.load_diseases_and_symptoms()
+        db.load_symptom_severity()
+        db.load_symptom_descriptions()
+        db.load_symptom_precautions()
+        return db
 
-#load data into db
-db.load_diseases_and_symptoms()
-db.load_symptom_severity()
-db.load_symptom_descriptions()
-db.load_symptom_precautions()
 
-#close the connection to the database
-#db.conn.close()
+if __name__ == "__main__":
+    # only run this block when you do: python database.py
+    initialise_database()
