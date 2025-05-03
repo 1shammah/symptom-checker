@@ -18,9 +18,6 @@ class UserController:
         # use provded db or create a new one
         self.db = db if db else Database()
         
-        #ensure tables exist
-        self.db.create_tables()
-        
         #instantiate the user model with the database
         self.user_model = UserModel(self.db)
 
