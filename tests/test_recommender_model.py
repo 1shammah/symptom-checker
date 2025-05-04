@@ -8,7 +8,7 @@ class TestRecommenderModel(unittest.TestCase):
         """ Prepare a clean in-memory db and fit a recommender before each test """
         # Create an in-memory database for testing
         self.db = Database(":memory:")
-        self.db.create_tables()
+        self.db.reset_schema()
 
         # seed one disease and two symptoms 
         self.db.cur.execute(

@@ -8,7 +8,7 @@ class TestAdminModel(unittest.TestCase):
     def setUp(self):
         # Create a temporary in-memory database for testing. Each test will have a fresh database.
         self.db = Database(dbname=":memory:")
-        self.db.create_tables()
+        self.db.reset_schema()
         self.model = AdminModel(self.db)
 
         

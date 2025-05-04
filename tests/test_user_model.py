@@ -9,7 +9,7 @@ class TestAdminModel(unittest.TestCase):
     def setUp(self):
     # fresh in-memory database
         self.db = Database(dbname=":memory:")
-        self.db.create_tables()
+        self.db.reset_schema()
         self.admin_model = AdminModel(self.db)
 
     ############# get_all_users() #############

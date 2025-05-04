@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 import pandas as pd
 import sqlite3
@@ -9,23 +10,39 @@ class Database:
         #intialising the database connection
         #tables already created in DB Browser
         self.dbname = dbname
-        self.conn = sqlite3.connect(dbname)
+        self.conn = sqlite3.connect(dbname, check_same_thread=False) #allow multiple threads to use the same connection
         self.conn.row_factory = sqlite3.Row #allows us to access columns by name
         self.cur = self.conn.cursor()
         self.cur.execute("PRAGMA foreign_keys = ON") #enable foreign key constraints
 
-    def create_tables(self):
-        """Drop existent tables and create new ones for testing and dev purposes"""
+    def reset_schema(self):
+        """
+        Drop all tables and recreate them from scratch.
+        Use during development or when reset=True.
+        """
+        # drop in reverse-FK order
+        self.cur.executescript("""
+            DROP TABLE IF EXISTS symptom_checks;
+            DROP TABLE IF EXISTS symptom_precautions;
+            DROP TABLE IF EXISTS symptom_severity;
+            DROP TABLE IF EXISTS symptom_disease;
+            DROP TABLE IF EXISTS symptoms;
+            DROP TABLE IF EXISTS diseases;
+            DROP TABLE IF EXISTS users;
+        """)
+        self.conn.commit()
+        # now recreate only the CREATE TABLE bits
+        self.create_tables_if_not_exists()
 
-        # Drop tables first (in reverse Foreign Key order)
-
-        self.cur.execute("DROP TABLE IF EXISTS symptom_checks")
-        self.cur.execute("DROP TABLE IF EXISTS symptom_precautions")
-        self.cur.execute("DROP TABLE IF EXISTS symptom_severity")
-        self.cur.execute("DROP TABLE IF EXISTS symptom_disease")
-        self.cur.execute("DROP TABLE IF EXISTS symptoms")
-        self.cur.execute("DROP TABLE IF EXISTS diseases")
-        self.cur.execute("DROP TABLE IF EXISTS users")     
+    def ensure_schema(self):
+        """
+        Only create tables if they don’t already exist.
+        Use on normal startup so CSV loads only once.
+        """
+        self.create_tables_if_not_exists()
+    
+    def create_tables_if_not_exists(self):
+        """ Create tables without dropping existing ones. """ 
 
         # Create tables if they don't exist
         self.cur.execute("""
@@ -663,20 +680,29 @@ class Database:
 # it only runs when the module is executed directly and csv data is not 
 # being fired everytime
 
-def initialise_database(dbname: str = "data/symptom_checker.db") -> Database:
-        """
-        Create the schema and populate the tables from CSV files.
-        Returns the Database instance for further use.
-        """
-        db = Database(dbname)
-        db.create_tables()
+def initialise_database(
+    dbname: str = "data/symptom_checker.db",
+    reset: bool = False
+) -> Database:
+    """
+    Returns a Database instance.
+    If reset=True or the DB file does not exist, drops & reloads CSV data.
+    Otherwise only creates missing tables once.
+    """
+    db = Database(dbname)
+
+    if reset or not os.path.exists(dbname):
+        db.reset_schema()
         db.load_diseases_and_symptoms()
         db.load_symptom_severity()
         db.load_symptom_descriptions()
         db.load_symptom_precautions()
-        return db
+    else:
+        db.ensure_schema()
+
+    return db
 
 
 if __name__ == "__main__":
-    # only run this block when you do: python database.py
-    initialise_database()
+    # python database.py  --> use reset=True here if you want
+    initialise_database(reset=True)

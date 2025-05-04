@@ -6,7 +6,7 @@ class TestAnalyticsModel(unittest.TestCase):
     def setUp(self):
         # fresh in-memory database
         self.db = Database(dbname=":memory:")
-        self.db.create_tables()
+        self.db.reset_schema()
         self.analytics_model = AnalyticsModel(self.db)
 
         # seed diseases

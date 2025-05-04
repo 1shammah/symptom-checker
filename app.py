@@ -15,7 +15,9 @@ from controllers.admin_controller import AdminController
 from views.login_view import show_login_view
 from views.register_view import show_register_view
 from views.main_view import show_main_view
-
+from views.symptoms_view import show_symptom_checker_view
+from views.user_view import show_profile_view
+from views.admin_view import show_admin_dashboard_view
 
 def apply_custom_css():
     # Custom CSS to style the Streamlit app
@@ -117,11 +119,17 @@ def main():
 
     # Route to correct view
     if page == "login":
-        show_login_view(navigate_to)
+        show_login_view(navigate_to, user_ctrl)
     elif page == "register":
         show_register_view(navigate_to, user_ctrl)
     elif page == "main":
-        show_main_view(navigate_to, user_ctrl, symptom_ctrl, recommender_ctrl)
+        show_main_view(navigate_to, user_ctrl, symptom_ctrl, recommender_ctrl, analytics_ctrl, admin_ctrl)
+    elif page == "symptom_checker":
+        show_symptom_checker_view(navigate_to, symptom_ctrl, recommender_ctrl)
+    elif page == "profile":
+        show_profile_view(navigate_to, user_ctrl)
+    elif page == "admin_dashboard":
+        show_admin_dashboard_view(navigate_to, analytics_ctrl, admin_ctrl, user_ctrl)
     else:
         st.error(f"Unknown page: {page}.")
     
