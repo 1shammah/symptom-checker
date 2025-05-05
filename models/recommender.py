@@ -100,12 +100,9 @@ class RecommenderModel:
         ranked_idx = scores.argsort()[::-1][:top_n]
         top_scores = [scores[i] for i in ranked_idx]
 
-        # 6) Normalize: divide each by the max so the best is 1.0
-        max_score = max(top_scores) or 1.0
-        normalized = [s / max_score for s in top_scores]
-
-        # 7) Map back to names & return
+        # 6) Instead of normalizing, return raw cosine similarity scores
         recs = []
-        for idx, norm_score in zip(ranked_idx, normalized):
-            recs.append((self.disease_names[idx], float(norm_score)))
+        for idx in ranked_idx:
+            raw_score = float(scores[idx])
+            recs.append((self.disease_names[idx], raw_score))
         return recs
