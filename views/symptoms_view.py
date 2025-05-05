@@ -98,7 +98,7 @@ def show_symptom_checker_view(
 
                 # Each disease in an expander
                 with st.expander(f"{disease} (match: {pct_match})", expanded=False):
-                    st.markdown("**Associated Symptoms:**")
+                    st.markdown("<strong>Associated Symptoms:</strong>", unsafe_allow_html=True)
                     # deduplicate symptoms with set()
                     for sym in sorted(set(symptoms)):
                         # severity comes from 1 to 6, explained above
@@ -106,12 +106,12 @@ def show_symptom_checker_view(
                         desc = symptom_ctrl.get_description(sym)
                         # show label without underscores
                         label = sym.replace("_", " ").title()
-                        line = f"- **{label}**: severity {sev}"
+                        line = f"- {label}: severity {sev}"
                         if desc:
                             line += f"; {desc}"
                         st.write(line)
 
-                    st.markdown("**Recommended Precautions:**")
+                    st.markdown("<strong>Recommended Precautions:</strong>", unsafe_allow_html=True)
                     if precautions:
                         for p in precautions:
                             st.write(f"- {p}")

@@ -10,7 +10,10 @@ def render_sidebar(navigate_to):
     user = st.session_state.get("user")
     role = getattr(user, "role", "User") if user else "User"
 
-    st.sidebar.markdown(f"**Logged in as:**  \n{user.name} ({role})")
+    st.sidebar.markdown(
+        f"<strong>Logged in as:</strong><br>{user.name} ({role})",
+        unsafe_allow_html=True
+    )
     st.sidebar.markdown("---")
 
     # New “About” button

@@ -1,3 +1,5 @@
+# views/user_view.py
+
 import streamlit as st
 import bcrypt
 from controllers.user_controller import UserController
@@ -29,11 +31,11 @@ def show_profile_view(navigate_to, user_ctrl: UserController):
 
     # --- Profile Summary ---
     st.markdown("<h2>Profile Summary</h2>", unsafe_allow_html=True)
-    st.write(f"**Name:** {profile.name}")
-    st.write(f"**Email:** {profile.email}")
-    st.write(f"**Gender:** {profile.gender}")
+    st.markdown(f"<strong>Name:</strong> {profile.name}", unsafe_allow_html=True)
+    st.markdown(f"<strong>Email:</strong> {profile.email}", unsafe_allow_html=True)
+    st.markdown(f"<strong>Gender:</strong> {profile.gender}", unsafe_allow_html=True)
     created_at = record["created_at"].split(" ")[0]
-    st.write(f"**Account Created:** {created_at}")
+    st.markdown(f"<strong>Account Created:</strong> {created_at}", unsafe_allow_html=True)
     st.markdown("<hr/>", unsafe_allow_html=True)
 
     # --- Edit Profile ---
