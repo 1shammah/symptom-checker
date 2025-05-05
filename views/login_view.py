@@ -43,8 +43,13 @@ def show_login_view(navigate_to, user_ctrl: UserController):
         if user:
             st.session_state.user = user
             st.session_state.login_success = True
-            # switch to main page immediately
+            # store user DB id for use in the user crud 
+            record = st.session_state.db.get_user_by_email(email)
+            if record:
+                st.session_state.user_id = record["id"]
+            # navigate to the main view immedialtely
             st.session_state.current_page = "main"
+
         else:
             st.session_state.login_error = "Invalid email or password."
 

@@ -63,6 +63,15 @@ def apply_custom_css():
         text-align: center;
         margin-top: 1.5rem;
     }
+    .sidebar .stButton button {
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0.5rem 0 !important;
+        text-align: left !important;
+    }
+    .sidebar .stButton button:hover {
+        background-color: rgba(30, 136, 229, 0.1) !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -101,20 +110,20 @@ def main():
 
     page = st.session_state.current_page
 
-    # Display header
-    if page != "main":
-        st.markdown(
-            """
-            <div class="app-header">
-                <h1>AI Symptom Checker</h1>
-            </div>
-            <div style="width:100px;height:5px;
-                        background-color:#1E88E5;
-                        margin:0 auto;">
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    # Display header on every page
+    st.markdown(
+        """
+        <div class="app-header">
+            <h1>AI Symptom Checker</h1>
+        </div>
+        <div style="width:100px;height:5px;
+                    background-color:#1E88E5;
+                    margin:0 auto;">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 
     # Route to correct view
@@ -123,7 +132,7 @@ def main():
     elif page == "register":
         show_register_view(navigate_to, user_ctrl)
     elif page == "main":
-        show_main_view(navigate_to, user_ctrl, symptom_ctrl, recommender_ctrl, analytics_ctrl, admin_ctrl)
+        show_main_view(navigate_to, user_ctrl, symptom_ctrl, recommender_ctrl, admin_ctrl, analytics_ctrl)
     elif page == "symptom_checker":
         show_symptom_checker_view(navigate_to, symptom_ctrl, recommender_ctrl)
     elif page == "profile":
