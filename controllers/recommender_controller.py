@@ -1,6 +1,4 @@
-# Handles AI-based disease recommendation
-# Separates TF-IDF + cosine similarity logic from streamlit
-# Uses RecommenderMOdel for ranking disease symptom
+# controllers/recommender_controller.py
 
 from typing import List, Tuple, Dict
 from models.database import Database
@@ -8,84 +6,71 @@ from models.symptom import SymptomModel
 from models.recommender import RecommenderModel
 
 class RecommenderController:
+    """
+    Bridges the RecommenderModel with Streamlit.
+    Trains on startup and exposes simple recommend methods.
+    """
+
     def __init__(self, db: Database):
-        """
-        Initialise with a Database instance
-        Train the TF-IDF vectoriseron startup
-
-        Args:
-            db (Database): provides data and helper methods  
-        """
-
         self.db = db
+        # SymptomModel handles cleaning/preprocessing of symptom tokens
         self.symptom_model = SymptomModel(db)
+        # RecommenderModel applies TF-IDF, severity weighting, bigrams, and normalization
         self.model = RecommenderModel(db, self.symptom_model)
-        
-        # Build the TF-IDF index once when app starts
+
+        # Build TF-IDF + weighted index once when the app starts
         self.model.fit()
 
     def recommend_diseases(
-            self,
-            selected_symptoms: List[str],
-            top_n: int = 5
+        self,
+        selected_symptoms: List[str],
+        top_n: int = 5
     ) -> List[Tuple[str, float]]:
         """
-        Return the top_n (disease, score) tuples for the selected symptoms
+        Return a list of (disease, normalized_score) tuples.
 
-        Args:
-            selected_symptoms (List[str]): list of symptoms selected by the user
-            top_n (int): number of top recommendations to return
-
-        Returns:
-            List of tuples (disease_name, similarity_score) 
-            Empty list on error
+        The `score` values are already normalized inside RecommenderModel.recommend()
+        such that the highest score in the batch is 1.0 (100%).
         """
         try:
-            
+            # Call the model to get normalized similarity scores
             return self.model.recommend(selected_symptoms, top_n)
-        
         except Exception as e:
-            print(f"RecommenderController.recommend_diseases error: {e}")
+            print(f"Error in recommend_diseases: {e}")
             return []
-        
+
     def recommend_with_details(
-            self,
-            selected_symptoms: List[str],
-            top_n: int = 5
-    ) -> List[Dict[str, str]]:
+        self,
+        selected_symptoms: List[str],
+        top_n: int = 5
+    ) -> List[Dict[str, object]]:
         """
-        Return recommendations along with full context:
-        - disease name 
-        - similarity score
-        - list of associated symptoms
-        - list of precaution steps
+        Returns detailed recommendations with:
+          - 'disease': the disease name
+          - 'score': normalized similarity [0.0–1.0]
+          - 'symptoms': list of associated symptoms
+          - 'precautions': list of precautionary steps
 
-        Args:
-            selected_symptoms: list of symptoms selected by the user
-            top_n: number of top recommendations to return
-
-        Returns:
-            List of dictionaries with keys:
-                'disease': str,
-                'score': float,
-                'symptoms': List[str],
-                'precautions': List[str] or None
-            Empty list on error
+        Note: The 'score' field here comes from the same normalized output
+        of RecommenderModel.recommend(), so it reflects relative match percentages.
         """
-
+        output = []
         try:
-            raw_recommendations = self.model.recommend(selected_symptoms, top_n)
-            detailed_recommendations: List[Dict[str, object]] = []
-            for disease_name, score in raw_recommendations:
-                symptom_list = self.db.get_symptoms_by_disease(disease_name)
-                precaution_list = self.db.get_precautions_by_disease(disease_name)
-                detailed_recommendations.append({
-                    'disease': disease_name,
-                    'score': score,
-                    'symptoms': symptom_list,
-                    'precautions': precaution_list
+            # Get the normalized (disease, score) list
+            raw = self.model.recommend(selected_symptoms, top_n)
+
+            for disease, score in raw:
+                # Fetch the full symptom list for this disease from the DB
+                syms = self.db.get_symptoms_by_disease(disease)
+                # Fetch precaution steps if any
+                prec = self.db.get_precautions_by_disease(disease) or []
+
+                output.append({
+                    "disease": disease,
+                    "score": score,
+                    "symptoms": syms,
+                    "precautions": prec
                 })
-            return detailed_recommendations
         except Exception as e:
-            print(f"RecommenderController.recommend_with_details error: {e}")
-            return []
+            print(f"Error in recommend_with_details: {e}")
+        return output

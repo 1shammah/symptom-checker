@@ -1,112 +1,111 @@
-from sklearn.feature_extraction.text import TfidfVectorizer             # for converting text to TF-IDF vectors
-from sklearn.metrics.pairwise import cosine_similarity                  # for calculating similarity between vectors
-from models.database import Database                                    # db helper with get_disesase_symptom_matrix()
-from models.symptom import SymptomModel                                 # for preprocess_symptoms() method
+# models/recommender.py
+
+from sklearn.feature_extraction.text import TfidfVectorizer             # for TF-IDF
+from sklearn.metrics.pairwise import cosine_similarity                  # to compute similarity
+from models.database import Database                                    # to fetch disease–symptom data :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
+from models.symptom import SymptomModel                                 # for symptom cleaning
 
 class RecommenderModel:
     """
-    Provides AI-driven disease recommendation
-    Uses TF-IDF vectorisation of disease-symptom text
-    and cosine similarity to compare with user-selected symptoms
+    AI-driven disease recommendation using content-based filtering:
+      • TF-IDF on weighted symptom “documents”
+      • Cosine similarity for ranking
     """
 
     def __init__(self, db: Database, symptom_model: SymptomModel):
-        """
-        Initialise with database helper and symptom model
-        
-        Args:
-            db (Database): access to disease-symptom data via helper methods
-            symptom_model (SymptomModel): handles symptom cleaning and preprocessing
-        """
-        self.db = db                                                    # store database instance
-        self.symptom_model = symptom_model                              # store symptom preprocessing model
-        self.vectorizer = None                                          # holds TF-IDF vectoriser          
-        self.tfidf_matrix = None                                        # holds TF-IDF matrix of all diseases   
-        self.disease_names = []                                         # holds ordered list of disease name
-
+        self.db = db
+        self.symptom_model = symptom_model
+        self.vectorizer = None      # will hold our TF-IDF vectoriser
+        self.tfidf_matrix = None    # will hold the TF-IDF matrix for all diseases
+        self.disease_names = []     # parallel list of disease names
+    
     def fit(self):
         """
-        Train the TF-IDF vectoriser on all diseases
-
-        Must be called once when the app starts, before any calls to recommend()
+        Build the TF-IDF index of all diseases.
+        
+        Steps:
+          1. Fetch disease → space-joined symptom strings.
+          2. Preprocess each string into tokens.
+          3. Severity weighting: replicate each token by its severity level.
+          4. Initialise TF-IDF with bigram support (1–2 grams).
+          5. Fit & transform into a matrix.
         """
-
         try:
-            # Fetch each disease with its combined symptom string from the disease-symptom matrix. DataFrame of { disease: cleaned_symptom_string }
-            matrix_dataframe = self.db.get_disease_symptom_matrix()
+            # 1) Load the disease–symptom matrix as a DataFrame
+            df = self.db.get_disease_symptom_matrix()  # {disease, symptom_string} :contentReference[oaicite:2]{index=2}:contentReference[oaicite:3]{index=3}
 
-            # extract disease names in same order as the symptom documents
-            self.disease_names = matrix_dataframe["disease"].tolist()
+            # Keep the disease names in order
+            self.disease_names = df["disease"].tolist()
+            raw_docs        = df["symptom"].tolist()  # e.g. "fever cough fatigue …"
 
-            # Raw symptom strings (space-joined) for each disease
-            raw_documents = matrix_dataframe["symptom"].tolist()    
-
-            # Clean each document using the same preprocessing as user input
-            cleaned_documents = []
-            
-            for raw in raw_documents:
-                # split into tokens then preprocess to a standard string
+            cleaned_weighted_docs = []
+            for raw in raw_docs:
+                # 2) Clean & normalize tokens
                 tokens = raw.split()
-                cleaned = self.symptom_model.preprocess_symptoms(tokens)
-                cleaned_documents.append(cleaned)
+                cleaned = self.symptom_model.preprocess_symptoms(tokens)  # "fever cough fatigue"
 
-            # Initialise the TF-IDF vectoriser with basic settings
+                # 3) Severity weighting: replicate tokens by severity
+                weighted_tokens = []
+                for token in cleaned.split():
+                    # fetch severity (1–6) from DB for each symptom :contentReference[oaicite:4]{index=4}:contentReference[oaicite:5]{index=5}
+                    sev = self.db.get_severity_by_symptom(token)
+                    try:
+                        count = int(sev)
+                    except (TypeError, ValueError):
+                        count = 1  # default to 1 if missing/bad
+                    # replicate the token 'count' times
+                    weighted_tokens.extend([token] * count)
+                
+                # join back into a single “document” string
+                cleaned_weighted_docs.append(" ".join(weighted_tokens))
+
+            # 4) Initialise TF-IDF to include unigrams & bigrams
             self.vectorizer = TfidfVectorizer(
-                token_pattern=r"(?u)\b\w+\b",  # regex to match single words (alphanumeric)
-                lowercase=True,                # ensure lowercase
-                sublinear_tf=True,             # use sublinear term frequency scaling
-                min_df=1,                      # include terms appearing in at least 1 document
+                token_pattern=r"(?u)\b\w+\b",  
+                lowercase=True,
+                sublinear_tf=True,
+                ngram_range=(1,2),   # allow bigrams like “joint pain”
+                min_df=1
             )
 
-            # Fit vectoriser to cleaned documents and transform to TF-IDF matrix
-            self.tfidf_matrix = self.vectorizer.fit_transform(cleaned_documents)
+            # 5) Fit & transform into the TF-IDF matrix
+            self.tfidf_matrix = self.vectorizer.fit_transform(cleaned_weighted_docs)
 
         except Exception as e:
             print(f"Error fitting recommender model: {e}")
-
+    
 
     def recommend(self, selected_symptoms: list[str], top_n: int = 5) -> list[tuple[str, float]]:
         """
-        Recommend top_n diseases for a list of user-selected symptoms.
-
-        Args:
-            selected_symptoms (list[str]): raw symptom names from the user interface
-            top_n (int): number of recommendations to return
-
-        Returns:
-            list of (disease_name, similarity_score)
+        Given user-selected symptoms, return top_n (disease, score) pairs.
+        
+        Also rescales scores so the top hit is 100%.
         """
-
-         # 1) Guard against mis-typed inputs
+        # 1) Guard invalid input types (must be a list of strings)
         if not isinstance(selected_symptoms, list):
             raise TypeError("selected_symptoms must be a list of symptom strings")
-        
-        # ensure tf-idf vectoriser and matrix exist before recommending
+
+        # 2) Ensure fit() has been called
         if self.vectorizer is None or self.tfidf_matrix is None:
-            raise RuntimeError("RecommenderModel.fit() must be called before recommend()")
+            raise RuntimeError("Call fit() before recommend()")
 
-        try:
-            # preprocess user symptoms into the same normalised format
-            user_document = self.symptom_model.preprocess_symptoms(selected_symptoms)
+        # 3) Preprocess user input
+        user_doc   = self.symptom_model.preprocess_symptoms(selected_symptoms)
+        user_vec   = self.vectorizer.transform([user_doc])
 
-            # vectorise the user document into TF-IDF space
-            user_vector = self.vectorizer.transform([user_document])
+        # 4) Compute cosine similarities
+        scores     = cosine_similarity(user_vec, self.tfidf_matrix)[0]
 
-            # calculate cosine similarity between user vector and all disease vectors
-            similarity_scores =  cosine_similarity(user_vector, self.tfidf_matrix)[0]
+        # 5) Pick top_n indices
+        ranked_idx = scores.argsort()[::-1][:top_n]
+        top_scores = [scores[i] for i in ranked_idx]
 
-            # Get indices of the top_n most similar diseases (highest similarity scores)
-            ranked_indices = similarity_scores.argsort()[::-1][:top_n]
+        # 6) Normalize: divide each by the max so the best is 1.0
+        max_score = max(top_scores) or 1.0
+        normalized = [s / max_score for s in top_scores]
 
-            # Map indices back to disease names and pair with scores
-            recommendations = []
-            for index in ranked_indices:
-                disease = self.disease_names[index]                     # get disease name from the index
-                score = float(similarity_scores[index])                 # get float similarity score
-                recommendations.append((disease, score))                # append to the list (tuple of disease and score)
-        
-            return recommendations
-        
-        except Exception as e:
-            print(f"Error recommending diseases: {e}")
-            return []
+        # 7) Map back to names & return
+        recs = []
+        for idx, norm_score in zip(ranked_idx, normalized):
+            recs.append((self.disease_names[idx], float(norm_score)))
+        return recs
