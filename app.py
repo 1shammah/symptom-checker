@@ -1,7 +1,10 @@
+# app.py
+
 import streamlit as st
 import pandas as pd
+import os
 
-# Call the function that builds and populates the SQlite database
+# Call the function that builds and populates the SQLite database
 from models.database import initialise_database
 
 # Call the controllers
@@ -21,7 +24,6 @@ from views.admin_view import show_admin_dashboard_view
 
 def apply_custom_css():
     # Custom CSS to style the Streamlit app
-    # This CSS will be applied to the entire app
     st.markdown("""
     <style>
     .main {
@@ -72,6 +74,12 @@ def apply_custom_css():
     .sidebar .stButton button:hover {
         background-color: rgba(30, 136, 229, 0.1) !important;
     }
+    /* ── Admin scroll-box ── */
+    .user-scroll-box {
+        max-height: 400px !important;
+        overflow-y: auto !important;
+        padding-right: 10px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -80,37 +88,44 @@ def navigate_to(page: str):
     st.session_state.current_page = page
     return
 
-def main():  
-    # Inject css before anything else
-    apply_custom_css()
-
-    # Build the database (create tables, load CSV data). Happens once at app start.
+def main():
+    # ─── Build the database (create tables, load CSV data). Once per app start ───
     if "db" not in st.session_state:
         st.session_state.db = initialise_database()
     db = st.session_state.db
 
-    # Create one shared instance of each controller
+    # ─── Create shared controller instances if not already in session ───────────
     if "user_ctrl" not in st.session_state:
-        st.session_state.user_ctrl = UserController(db)
-        st.session_state.symptom_ctrl = SymptomController(db)
+        st.session_state.user_ctrl        = UserController(db)
+        st.session_state.symptom_ctrl     = SymptomController(db)
         st.session_state.recommender_ctrl = RecommenderController(db)
-        st.session_state.analytics_ctrl = AnalyticsController(db)
-        st.session_state.admin_ctrl = AdminController(db)
-    
-    # reuse the controllers used in the session state
-    user_ctrl = st.session_state.user_ctrl
-    symptom_ctrl = st.session_state.symptom_ctrl
-    recommender_ctrl = st.session_state.recommender_ctrl
-    analytics_ctrl = st.session_state.analytics_ctrl
-    admin_ctrl = st.session_state.admin_ctrl
+        st.session_state.analytics_ctrl   = AnalyticsController(db)
+        st.session_state.admin_ctrl       = AdminController(db)
 
-    # Initialise routing stage
+    # ─── Unpack controllers for easy local use ─────────────────────────────────
+    user_ctrl        = st.session_state.user_ctrl
+    symptom_ctrl     = st.session_state.symptom_ctrl
+    recommender_ctrl = st.session_state.recommender_ctrl
+    analytics_ctrl   = st.session_state.analytics_ctrl
+    admin_ctrl       = st.session_state.admin_ctrl
+
+    # ─── Initialise routing state ──────────────────────────────────────────────
     if "current_page" not in st.session_state:
         st.session_state.current_page = "login"
-
     page = st.session_state.current_page
 
-    # Display header on every page
+    # ─── Conditionally set page config (only on non-login/register pages) ─────
+    if page not in ("login", "register"):
+        st.set_page_config(
+            page_title="AI Symptom Checker",
+            page_icon="🩺",
+            layout="wide",
+        )
+
+    # ─── Inject site-wide CSS (buttons, header, etc.) ─────────────────────────
+    apply_custom_css()
+
+    # ─── Always render the top header on every page ────────────────────────────
     st.markdown(
         """
         <div class="app-header">
@@ -124,9 +139,7 @@ def main():
         unsafe_allow_html=True
     )
 
-
-
-    # Route to correct view
+    # ─── Route to the correct view based on session_state.current_page ─────────
     if page == "login":
         show_login_view(navigate_to, user_ctrl)
     elif page == "register":
@@ -138,10 +151,10 @@ def main():
     elif page == "profile":
         show_profile_view(navigate_to, user_ctrl)
     elif page == "admin_dashboard":
-        show_admin_dashboard_view(navigate_to, analytics_ctrl, admin_ctrl, user_ctrl)
+        show_admin_dashboard_view(navigate_to, analytics_ctrl, admin_ctrl)
     else:
         st.error(f"Unknown page: {page}.")
-    
         st.error("Page not found.")
+
 if __name__ == "__main__":
     main()

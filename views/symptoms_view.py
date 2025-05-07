@@ -17,51 +17,55 @@ def show_symptom_checker_view(
       • Step 3: Click "Find Possible Diseases" to run the AI model.
       • Step 4: View results, with:
           – Symptoms deduplicated and displayed without underscores.
-          – Severity explained on a 1–6 scale.
+          – Severity explained on a 1–7 scale.
           – Match score shown as a percentage.
+          – Descriptive rationale naming matched symptom(s).
+          – How many of your symptoms and how many of the disease’s symptoms matched.
           – Recommended precautions.
     """
-    # Draw the shared sidebar (navigation)
-    render_sidebar(navigate_to)
 
-    # Page header
+    # ─── Sidebar & Title ───────────────────────────────────────────────────────
+    render_sidebar(navigate_to)
     st.title("Symptom Checker")
 
-    # 1) Beginner-friendly “How it works” panel, now explaining severity scale too:
+    # ─── “How it works” Instruction Panel ─────────────────────────────────────
     st.markdown("""
 <div style="background-color:#e7f3fe; border-left:4px solid #2196F3; padding:10px; margin-bottom:1rem;">
   <h3>How it works:</h3>
   <ol>
     <li>Select one or more symptoms you’re experiencing from the dropdown below (type to filter).</li>
-    <li><em>Severity scale:</em> 1 = mild, 6 = severe.</li>
+    <li><em>Severity scale:</em> 1 = mild, 7 = most severe.</li>
     <li>Click <strong>Find Possible Diseases</strong> to run the AI model.</li>
-    <li>Review possible diseases with match %, symptom severities, descriptions, and precautions.</li>
+    <li>Review possible diseases with:
+      <ul>
+        <li>Match percentage (AI-weighted)</li>
+        <li>Rationale naming which symptom(s) drove the match</li>
+        <li>Count-based match rates for your symptoms and for each disease’s full symptom list</li>
+        <li>Symptom severities & descriptions</li>
+        <li>Recommended precautions</li>
+      </ul>
+    </li>
   </ol>
 </div>
 """, unsafe_allow_html=True)
 
-    # 2) Load symptoms from the controller and prepare a mapping:
-    all_symptoms = symptom_ctrl.list_all_symptoms()  # returns Symptom objects
-    # Map internal names ("head_ache") → user-friendly labels ("Head Ache")
+    # ─── Prepare Symptom List ──────────────────────────────────────────────────
+    all_symptoms = symptom_ctrl.list_all_symptoms()
     symptom_map = {
         s.name: s.name.replace("_", " ").title()
         for s in all_symptoms
     }
     ui_labels   = list(symptom_map.values())
-    # Reverse map for sending back to the recommender
     inverse_map = {label: key for key, label in symptom_map.items()}
 
-    # 3) Symptom-selection form
+    # ─── Symptom Selection Form ────────────────────────────────────────────────
     with st.form("symptom_form"):
-        # placeholder makes it clear you can type to filter
         selected_ui = st.multiselect(
             "Choose your symptoms",
             options=ui_labels,
             placeholder="Type to filter symptoms…",
             help="Start typing a symptom name to narrow the list"
         )
-
-        # show the selected symptoms under the dropdown
         if selected_ui:
             st.markdown("<strong>Selected Symptoms:</strong>", unsafe_allow_html=True)
             st.write(", ".join(selected_ui))
@@ -71,19 +75,19 @@ def show_symptom_checker_view(
             if not selected_ui:
                 st.error("Please select at least one symptom.")
             else:
-                # Run the AI recommendation model
                 with st.spinner("Finding matching diseases…"):
-                    # Map back to internal symptom keys
                     selected_internal = [inverse_map[label] for label in selected_ui]
                     recs = recommender_ctrl.recommend_with_details(
                         selected_internal,
                         top_n=5
                     )
-                    # Store for display below
-                    st.session_state.recommendations = recs
+                    st.session_state.recommendations   = recs
+                    st.session_state.selected_internal = selected_internal
 
-    # Render results if available
-    recommendations = st.session_state.get("recommendations")
+    # ─── Render Recommendations ────────────────────────────────────────────────
+    recommendations   = st.session_state.get("recommendations")
+    selected_internal = st.session_state.get("selected_internal", [])
+
     if recommendations is not None:
         if not recommendations:
             st.warning("No diseases found for those symptoms.")
@@ -91,26 +95,60 @@ def show_symptom_checker_view(
             st.subheader("Possible Diseases")
             for rec in recommendations:
                 disease     = rec["disease"]
-                # convert match results from decimal to percentage
                 pct_match   = f"{rec['score'] * 100:.0f}%"
                 symptoms    = rec["symptoms"]
                 precautions = rec.get("precautions", [])
 
-                # Each disease in an expander
-                with st.expander(f"{disease} (match: {pct_match})", expanded=False):
+                # Changed "match" to "confidence" for layperson clarity
+                with st.expander(f"{disease} (confidence: {pct_match})", expanded=False):
+                    # Determine which user symptoms matched
+                    matched = set(symptoms).intersection(selected_internal)
+                    count_matched    = len(matched)
+                    total_selected   = len(selected_internal)
+
+                    # Deduplicate the disease’s symptom list before counting
+                    unique_disease_symptoms = set(symptoms)
+                    total_disease    = len(unique_disease_symptoms)
+
+                    # Simple count-based percentages
+                    count_pct_user    = f"{(count_matched/total_selected*100):.0f}%"
+                    count_pct_disease = f"{(count_matched/total_disease*100):.0f}%"
+
+                    # Convert keys to user-friendly labels
+                    matched_labels = [s.replace("_", " ").title() for s in matched]
+                    if matched_labels:
+                        # Build label string: "A", or "A and B", or "A, B and C"
+                        if len(matched_labels) == 1:
+                            symptom_text = matched_labels[0]
+                        else:
+                            symptom_text = ", ".join(matched_labels[:-1]) + " and " + matched_labels[-1]
+
+                        # Lay-friendly confidence statement
+                        st.markdown(
+                            f"<em>You reported <strong>{symptom_text}</strong>. "
+                            f"Our system is <strong>{pct_match}</strong> confident this indicates <strong>{disease}</strong>.</em>",
+                            unsafe_allow_html=True
+                        )
+                        # Lay-friendly count reassurance
+                        st.markdown(
+                            f"<em>All {count_matched} of your {total_selected} selected symptoms match "
+                            f"the typical indicators for {disease}, which is known to present with "
+                            f"{total_disease} symptoms.</em>",
+                            unsafe_allow_html=True
+                        )
+
+                    # List all associated symptoms with severity & descriptions
                     st.markdown("<strong>Associated Symptoms:</strong>", unsafe_allow_html=True)
-                    # deduplicate symptoms with set()
-                    for sym in sorted(set(symptoms)):
-                        # severity comes from 1 to 6, explained above
+                    for sym in sorted(unique_disease_symptoms):
                         sev  = symptom_ctrl.get_severity(sym)
                         desc = symptom_ctrl.get_description(sym)
-                        # show label without underscores
                         label = sym.replace("_", " ").title()
-                        line = f"- {label}: severity {sev}"
+                        line  = f"- {label}: severity {sev}"
                         if desc:
                             line += f"; {desc}"
                         st.write(line)
 
+                    # List recommended precautions
                     st.markdown("<strong>Recommended Precautions:</strong>", unsafe_allow_html=True)
                     if precautions:
                         for p in precautions:
