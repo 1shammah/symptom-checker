@@ -2,7 +2,6 @@
 
 import streamlit as st
 import pandas as pd
-import os
 
 # Call the function that builds and populates the SQLite database
 from models.database import initialise_database

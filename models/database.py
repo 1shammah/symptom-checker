@@ -705,4 +705,4 @@ def initialise_database(
 
 if __name__ == "__main__":
     # python database.py  --> use reset=True here if you want
-    initialise_database(reset=True)
+    initialise_database(reset=False)
