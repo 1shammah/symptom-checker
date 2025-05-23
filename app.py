@@ -74,7 +74,7 @@ def apply_custom_css():
     .sidebar .stButton button:hover {
         background-color: rgba(30, 136, 229, 0.1) !important;
     }
-    /* ── Admin scroll-box ── */
+    /*  Admin scroll-box  */
     .user-scroll-box {
         max-height: 400px !important;
         overflow-y: auto !important;
@@ -89,12 +89,12 @@ def navigate_to(page: str):
     return
 
 def main():
-    # ─── Build the database (create tables, load CSV data). Once per app start ───
+    # Build the database (create tables, load CSV data). Once per app start 
     if "db" not in st.session_state:
         st.session_state.db = initialise_database()
     db = st.session_state.db
 
-    # ─── Create shared controller instances if not already in session ───────────
+    # Create shared controller instances if not already in session 
     if "user_ctrl" not in st.session_state:
         st.session_state.user_ctrl        = UserController(db)
         st.session_state.symptom_ctrl     = SymptomController(db)
@@ -102,30 +102,30 @@ def main():
         st.session_state.analytics_ctrl   = AnalyticsController(db)
         st.session_state.admin_ctrl       = AdminController(db)
 
-    # ─── Unpack controllers for easy local use ─────────────────────────────────
+    # ─ Unpack controllers for easy local use ─
     user_ctrl        = st.session_state.user_ctrl
     symptom_ctrl     = st.session_state.symptom_ctrl
     recommender_ctrl = st.session_state.recommender_ctrl
     analytics_ctrl   = st.session_state.analytics_ctrl
     admin_ctrl       = st.session_state.admin_ctrl
 
-    # ─── Initialise routing state ──────────────────────────────────────────────
+    # Initialise routing state 
     if "current_page" not in st.session_state:
         st.session_state.current_page = "login"
     page = st.session_state.current_page
 
-    # ─── Conditionally set page config (only on non-login/register pages) ─────
+    # set page config (only on non-login/register pages) 
     if page not in ("login", "register"):
         st.set_page_config(
             page_title="AI Symptom Checker",
             page_icon="🩺",
-            layout="wide",
+            ##layout="wide",
         )
 
-    # ─── Inject site-wide CSS (buttons, header, etc.) ─────────────────────────
+    # Inject site-wide CSS (buttons, header, etc.)
     apply_custom_css()
 
-    # ─── Always render the top header on every page ────────────────────────────
+    # Always display the top header on every page 
     st.markdown(
         """
         <div class="app-header">
@@ -139,7 +139,7 @@ def main():
         unsafe_allow_html=True
     )
 
-    # ─── Route to the correct view based on session_state.current_page ─────────
+    # Route to the correct view based on session_state.current_page
     if page == "login":
         show_login_view(navigate_to, user_ctrl)
     elif page == "register":

@@ -28,7 +28,7 @@ def show_main_view(
         user = st.session_state.get("user")
         st.success(f"Welcome, {user.name}! Feel free to explore the app using the sidebar.")
 
-    # --- Main Content ---
+    # Main Content
     st.title("About the AI-Powered Symptom Checker")
 
     st.markdown("""

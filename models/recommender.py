@@ -31,8 +31,8 @@ class RecommenderModel:
           5. Fit & transform into a matrix.
         """
         try:
-            # 1) Load the disease–symptom matrix as a DataFrame
-            df = self.db.get_disease_symptom_matrix()  # {disease, symptom_string} :contentReference[oaicite:2]{index=2}:contentReference[oaicite:3]{index=3}
+            # Load the disease–symptom matrix as a DataFrame
+            df = self.db.get_disease_symptom_matrix() 
 
             # Keep the disease names in order
             self.disease_names = df["disease"].tolist()
@@ -40,14 +40,14 @@ class RecommenderModel:
 
             cleaned_weighted_docs = []
             for raw in raw_docs:
-                # 2) Clean & normalize tokens
+                # Clean & normalize tokens
                 tokens = raw.split()
-                cleaned = self.symptom_model.preprocess_symptoms(tokens)  # "fever cough fatigue"
+                cleaned = self.symptom_model.preprocess_symptoms(tokens) # "fever cough fatigue"
 
-                # 3) Severity weighting: replicate tokens by severity
+                # Severity weighting: replicate tokens by severity
                 weighted_tokens = []
                 for token in cleaned.split():
-                    # fetch severity (1–6) from DB for each symptom :contentReference[oaicite:4]{index=4}:contentReference[oaicite:5]{index=5}
+                    # fetch severity from DB for each symptom
                     sev = self.db.get_severity_by_symptom(token)
                     try:
                         count = int(sev)
@@ -59,7 +59,7 @@ class RecommenderModel:
                 # join back into a single “document” string
                 cleaned_weighted_docs.append(" ".join(weighted_tokens))
 
-            # 4) Initialise TF-IDF to include unigrams & bigrams
+            # Initialise TF-IDF to include unigrams & bigrams
             self.vectorizer = TfidfVectorizer(
                 token_pattern=r"(?u)\b\w+\b",  
                 lowercase=True,
@@ -68,7 +68,7 @@ class RecommenderModel:
                 min_df=1
             )
 
-            # 5) Fit & transform into the TF-IDF matrix
+            # Fit & transform into the TF-IDF matrix
             self.tfidf_matrix = self.vectorizer.fit_transform(cleaned_weighted_docs)
 
         except Exception as e:
@@ -81,26 +81,26 @@ class RecommenderModel:
         
         Also rescales scores so the top hit is 100%.
         """
-        # 1) Guard invalid input types (must be a list of strings)
+        # Guard invalid input types (must be a list of strings)
         if not isinstance(selected_symptoms, list):
             raise TypeError("selected_symptoms must be a list of symptom strings")
 
-        # 2) Ensure fit() has been called
+        # Ensure fit() has been called
         if self.vectorizer is None or self.tfidf_matrix is None:
             raise RuntimeError("Call fit() before recommend()")
 
-        # 3) Preprocess user input
+        # Preprocess user input
         user_doc   = self.symptom_model.preprocess_symptoms(selected_symptoms)
         user_vec   = self.vectorizer.transform([user_doc])
 
-        # 4) Compute cosine similarities
+        # Compute cosine similarities
         scores     = cosine_similarity(user_vec, self.tfidf_matrix)[0]
 
-        # 5) Pick top_n indices
+        # Pick top_n indices
         ranked_idx = scores.argsort()[::-1][:top_n]
         top_scores = [scores[i] for i in ranked_idx]
 
-        # 6) Instead of normalizing, return raw cosine similarity scores
+        # Instead of normalizing, return raw cosine similarity scores
         recs = []
         for idx in ranked_idx:
             raw_score = float(scores[idx])

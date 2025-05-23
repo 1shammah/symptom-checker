@@ -47,16 +47,16 @@ def show_login_view(navigate_to, user_ctrl: UserController):
             st.session_state.login_error = "Enter a valid email address."
             return
 
-        # 1) Attempt authentication
+        # Attempt authentication
         user = user_ctrl.login_user(email=email, password=password)  # returns User object or None
         if user:
-            # 2) Store the authenticated User object
+            # Store the authenticated User object
             st.session_state.user = user
 
-            # 3) Re-fetch the authoritative DB record so we get the true 'role'
+            # Re-fetch the authoritative DB record so we get the true 'role'
             record = st.session_state.db.get_user_by_email(email)      # sqlite3.Row
             if record and "role" in record.keys():
-                # 4) Overwrite the in-memory user.role with the DB value
+                # Overwrite the in-memory user.role with the DB value
                 st.session_state.user.role = record["role"]
                 # Also store the user’s DB id for downstream CRUD operations
                 st.session_state.user_id = record["id"]

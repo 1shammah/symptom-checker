@@ -79,6 +79,7 @@ class Database:
                          symptom_id INTEGER NOT NULL,
                          FOREIGN KEY (disease_id) REFERENCES diseases(id),
                          FOREIGN KEY (symptom_id) REFERENCES symptoms(id)
+                         UNIQUE (disease_id, symptom_id) -- ensure unique pairs
                          )
                         """)
         
@@ -129,45 +130,44 @@ class Database:
 
 
     def load_diseases_and_symptoms(self):
-        #load diseases and symptoms into db from dataset.csv
-
+        """
+        Load diseases and symptoms into the database from dataset.csv.
+        Deduplicates disease-symptom pairs before inserting into the symptom_disease table.
+        """
         try:
-            # read the csv file
-            df= pd.read_csv('data/dataset.csv')
+            # Read the dataset
+            df = pd.read_csv('data/dataset.csv')
 
-            # insert unique diseases into table
+            # Insert unique diseases into the diseases table
             diseases = [(row['Disease'].strip(),) for _, row in df.iterrows()]
-            #insert into  db avoiding duplicates
             self.cur.executemany("INSERT OR IGNORE INTO diseases (disease_name) VALUES (?)", diseases)
 
-            #insert unique symptoms into table
+            # Insert unique symptoms into the symptoms table
             symptoms_list = set()
             for _, row in df.iterrows():
                 symptoms_list.update([str(row[f'Symptom_{i}']).strip() for i in range(1, 18) if pd.notna(row[f'Symptom_{i}'])])
-            #convert to tuples for bulk insert
             symptoms_data = [(symptom,) for symptom in symptoms_list]
-            #insert into  db avoiding duplicates
             self.cur.executemany("INSERT OR IGNORE INTO symptoms (symptom_name) VALUES (?)", symptoms_data)
 
-            #fetch disease and symptoms IDs
+            # Fetch disease and symptom IDs
             self.cur.execute("SELECT id, disease_name FROM diseases")
             disease_map = {name.strip(): id for id, name in self.cur.fetchall()}
             self.cur.execute("SELECT id, symptom_name FROM symptoms")
             symptom_map = {name.strip(): id for id, name in self.cur.fetchall()}
 
-            #populate symptom_disease table
-            symptom_disease_data = []
+            # Populate the symptom_disease table with deduplication
+            symptom_disease_data = set()  # Use a set to deduplicate
             for _, row in df.iterrows():
                 disease_id = disease_map.get(row['Disease'])
                 symptoms = [str(row[f'Symptom_{i}']).strip() for i in range(1, 18) if pd.notna(row[f'Symptom_{i}'])]
-                symptom_disease_data.extend([(disease_id, symptom_map[symptom]) for symptom in symptoms if symptom in symptom_map])
+                symptom_disease_data.update((disease_id, symptom_map[symptom]) for symptom in symptoms if symptom in symptom_map)
 
-            #batch insert into symptom_disease table
-            self.cur.executemany("INSERT INTO symptom_disease (disease_id, symptom_id) VALUES (?, ?)", symptom_disease_data)
+            # Batch insert into the symptom_disease table
+            self.cur.executemany("INSERT OR IGNORE INTO symptom_disease (disease_id, symptom_id) VALUES (?, ?)", list(symptom_disease_data))
 
-            #commit changes
+            # Commit changes
             self.conn.commit()
-            print("diseases and symptoms loaded successfully")
+            print("Diseases and symptoms loaded successfully")
 
         except Exception as e:
             print(f"Error loading diseases: {e}")

@@ -49,7 +49,7 @@ def show_symptom_checker_view(
 </div>
 """, unsafe_allow_html=True)
 
-    # ─── Prepare Symptom List ──────────────────────────────────────────────────
+    # Prepare Symptom List 
     all_symptoms = symptom_ctrl.list_all_symptoms()
     symptom_map = {
         s.name: s.name.replace("_", " ").title()
@@ -58,7 +58,7 @@ def show_symptom_checker_view(
     ui_labels   = list(symptom_map.values())
     inverse_map = {label: key for key, label in symptom_map.items()}
 
-    # ─── Symptom Selection Form ────────────────────────────────────────────────
+    # Symptom Selection Form
     with st.form("symptom_form"):
         selected_ui = st.multiselect(
             "Choose your symptoms",
@@ -84,7 +84,7 @@ def show_symptom_checker_view(
                     st.session_state.recommendations   = recs
                     st.session_state.selected_internal = selected_internal
 
-    # ─── Render Recommendations ────────────────────────────────────────────────
+    # Render Recommendations
     recommendations   = st.session_state.get("recommendations")
     selected_internal = st.session_state.get("selected_internal", [])
 

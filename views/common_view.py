@@ -12,13 +12,13 @@ def render_sidebar(navigate_to):
       4. Displays “Admin Dashboard” link only when role == "admin"
     This ensures that manual DB edits or admin promotions take effect immediately.
     """
-    # ─── 1) Grab the logged-in User object from session ─────────────────────
+    #Grab the logged-in User from session
     user = st.session_state.get("user")
     if not user:
         # No user => no sidebar navigation
         return
 
-    # ─── 2) Look up their “role” in SQLite ═══════════════════════════════════
+    # Look up their “role” in SQLite
     db     = st.session_state.db
     record = db.get_user_by_email(user.email)  # returns sqlite3.Row or None
 
@@ -28,14 +28,14 @@ def render_sidebar(navigate_to):
     else:
         raw_role = "User"
 
-    # ─── 3) Sync the in-memory User object so it never goes stale ───────────
+    # Sync the in-memory User object so it never goes stale
     st.session_state.user.role = raw_role
 
     # Normalize for logic, and prepare title-cased display
     role         = raw_role.strip().lower()   # e.g. "Admin" -> "admin"
     display_role = role.title()               # "admin" -> "Admin"
 
-    # ─── 4) Render the sidebar UI ────────────────────────────────────────────
+    # Display the sidebar UI
     # Show who’s logged in, using the live display_role
     st.sidebar.markdown(
         f"<strong>Logged in as:</strong><br>{user.name} ({display_role})",

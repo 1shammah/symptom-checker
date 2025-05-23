@@ -15,7 +15,7 @@ def show_admin_dashboard_view(navigate_to,
 
     Uses only on_click callbacks for all buttons.
     """
-    # ─── Sidebar & Access Gate ────────────────────────────────────────────────
+    # Sidebar
     render_sidebar(navigate_to)
     current_user = st.session_state.get("user")
     record = st.session_state.db.get_user_by_email(current_user.email)
@@ -24,19 +24,19 @@ def show_admin_dashboard_view(navigate_to,
         navigate_to("main")
         return
 
-    # ─── Page Header & Tabs ───────────────────────────────────────────────────
+    # Page Header & Tabs
     st.markdown("<h2>Admin Dashboard</h2>", unsafe_allow_html=True)
     tab_users, tab_analytics = st.tabs(["User Management", "Analytics"])
 
-    # ──────────────────────────── Tab 1: User Management ───────────────────────
+    # Tab for user management
     with tab_users:
         st.markdown("<h3>User Management</h3>", unsafe_allow_html=True)
         st.markdown("Below is the list of all accounts. Use the buttons to change roles or delete them.")
 
-        # 1) Fetch full user list
+        #Fetch full user list
         users = admin_ctrl.list_users()
 
-        # 2) Overview table listing all users
+        #Overview table listing all users
         df_all = {
             "Name":   [u.name  for u in users],
             "Email":  [u.email for u in users],
@@ -46,7 +46,7 @@ def show_admin_dashboard_view(navigate_to,
         st.dataframe(df_all, use_container_width=True)
         st.markdown("---")
 
-        # 3) Pagination setup for the expanders
+        # page setup for the expanders
         total     = len(users)
         page_size = 5
         if "admin_page" not in st.session_state:
@@ -56,7 +56,7 @@ def show_admin_dashboard_view(navigate_to,
         start    = page * page_size
         end      = min(start + page_size, total)
 
-        # Pagination controls
+        # Page controls
         def go_prev():
             st.session_state.admin_page = max(page - 1, 0)
         def go_next():
@@ -68,18 +68,18 @@ def show_admin_dashboard_view(navigate_to,
         col2.button("Next ›",      disabled=(page >= max_page), on_click=go_next)
         st.markdown("---")
 
-        # 4) Feedback messages
+        # Feedback messages
         msgs = st.session_state.pop("admin_msgs", [])
         for m in msgs:
             getattr(st, m["type"])(m["text"])
 
-        # 5) Scrollable box containing only the expanders
+        # Scrollable box containing only the expanders
         st.markdown(
             "<div style='max-height:400px; overflow-y:auto; padding-right:10px;'>",
             unsafe_allow_html=True
         )
 
-        # 6) Render one expander per user on this page slice
+        # displaying one expander per user on this page
         for u in users[start:end]:
             open_flag = f"open_expander_{u.email}"
             expanded  = st.session_state.pop(open_flag, False)
@@ -88,7 +88,7 @@ def show_admin_dashboard_view(navigate_to,
             with st.expander(label, expanded=expanded):
                 st.write(f"**Gender:** {u.gender}")
 
-                # — Promote User → Admin —
+                # Promote User to  Admin
                 if u.role.lower() == "user":
                     def _promote(email=u.email):
                         ok = admin_ctrl.promote_user(email)
@@ -104,7 +104,7 @@ def show_admin_dashboard_view(navigate_to,
                         on_click=_promote
                     )
 
-                # — Demote Admin → User (with immediate redirect for self) —
+                # Demote Admin to User (with immediate redirect for self)
                 else:
                     def _demote(email=u.email):
                         ok = admin_ctrl.demote_user(email)
@@ -122,17 +122,17 @@ def show_admin_dashboard_view(navigate_to,
                         on_click=_demote
                     )
 
-                # — Delete Account with confirmation checkbox + single-click delete —
+                # Delete Account with confirmation checkbox + single-click delete
                 confirm_key = f"confirm_delete_{u.email}"
                 open_flag   = f"open_expander_{u.email}"
 
-                # 1) Render the confirmation checkbox
+                # Display the confirmation checkbox
                 st.checkbox(
                     "I understand this action cannot be undone",
                     key=confirm_key
                 )
 
-                # 2) Define the callback that actually deletes
+                # Define the callback that actually deletes
                 def _delete_user(email=u.email, name=u.name,
                                 confirm_key=confirm_key, open_flag=open_flag):
                     # ensure the checkbox was ticked
@@ -152,7 +152,7 @@ def show_admin_dashboard_view(navigate_to,
                     # keep this expander open so they see the feedback
                     st.session_state[open_flag] = True
 
-                # 3) Render the single-click Delete button
+                # 3) Display the single-click Delete button
                 st.button(
                     "Delete Account",
                     key=f"delete_{u.email}",
@@ -160,24 +160,38 @@ def show_admin_dashboard_view(navigate_to,
                 )
 
 
-        # 7) Close scrollable box
+        # Close scrollable box
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # ─────────────────────────────── Tab 2: Analytics ─────────────────────────
+    # Tab 2 for  Analytics
     with tab_analytics:
+        #
         st.markdown("<h3>System Analytics</h3>", unsafe_allow_html=True)
-        st.markdown("Read-only insights into diseases, symptoms, and severity.")
-        st.markdown("**Most Common Diseases**", unsafe_allow_html=True)
-        st.dataframe(
-            analytics_ctrl.disease_prevalence(top_n=10),
-            use_container_width=True
-        )
-        st.markdown("**Most Common Symptoms**", unsafe_allow_html=True)
-        st.dataframe(
-            analytics_ctrl.symptom_prevalence(top_n=10),
-            use_container_width=True
-        )
-        st.markdown("**Severity Level Distribution**", unsafe_allow_html=True)
-        st.bar_chart(
-            analytics_ctrl.severity_distribution().set_index("Severity Level")
-        )
+        # Brief description in a paragraph tag
+        st.markdown("<p>Read-only insights into diseases, symptoms, and severity.</p>", unsafe_allow_html=True)
+
+        
+        st.markdown("<h4>Most Common Diseases</h4>", unsafe_allow_html=True)
+        # Fetch the top 10 diseases by prevalence; drop any duplicate rows
+        df_diseases = analytics_ctrl.disease_prevalence(top_n=10).drop_duplicates()
+        # Render the DataFrame in a scrollable, resizable table
+        st.dataframe(df_diseases, use_container_width=True)
+
+        # Repeat the pattern for symptoms
+        st.markdown("<h4>Most Common Symptoms</h4>", unsafe_allow_html=True)
+        df_symptoms = analytics_ctrl.symptom_prevalence(top_n=10).drop_duplicates()
+        st.dataframe(df_symptoms, use_container_width=True)
+
+        # Explain in another sub-heading
+        st.markdown("<h4>Severity Level Distribution</h4>", unsafe_allow_html=True)
+        # Get the distribution and remove any duplicates
+        df_severity = analytics_ctrl.severity_distribution().drop_duplicates()
+        
+        # Set the ‘Severity Level’ column as the index so the bar chart labels correctly
+        st.bar_chart(df_severity.set_index("Severity Level"))
+
+
+
+
+
+

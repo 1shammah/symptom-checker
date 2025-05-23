@@ -1,4 +1,4 @@
-# views/user_view.py
+
 
 import streamlit as st
 import bcrypt
@@ -29,7 +29,7 @@ def show_profile_view(navigate_to, user_ctrl: UserController):
     # get fresh profile object
     profile = user_ctrl.get_profile(user_id)
 
-    # --- Profile Summary ---
+    # Profile Summary
     st.markdown("<h2>Profile Summary</h2>", unsafe_allow_html=True)
     st.markdown(f"<strong>Name:</strong> {profile.name}", unsafe_allow_html=True)
     st.markdown(f"<strong>Email:</strong> {profile.email}", unsafe_allow_html=True)
@@ -38,7 +38,7 @@ def show_profile_view(navigate_to, user_ctrl: UserController):
     st.markdown(f"<strong>Account Created:</strong> {created_at}", unsafe_allow_html=True)
     st.markdown("<hr/>", unsafe_allow_html=True)
 
-    # --- Edit Profile ---
+    # Edit Profile
     st.markdown("<h2>Edit Profile</h2>", unsafe_allow_html=True)
 
     def _handle_save():
@@ -73,7 +73,7 @@ def show_profile_view(navigate_to, user_ctrl: UserController):
 
     st.markdown("<hr/>", unsafe_allow_html=True)
 
-    # --- Change Password ---
+    # Change Password 
     st.markdown("<h2>Change Password</h2>", unsafe_allow_html=True)
 
     def _handle_change_pw():
@@ -120,7 +120,7 @@ def show_profile_view(navigate_to, user_ctrl: UserController):
 
     st.markdown("<hr/>", unsafe_allow_html=True)
 
-    # --- Danger Zone: Delete Account ---
+    # Danger Zone: Delete Account
     st.markdown("<h2 style='color:#C62828;'>Danger Zone: Delete Account</h2>", unsafe_allow_html=True)
     with st.expander("⚠️ I understand this action cannot be undone"):
 
