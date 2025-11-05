@@ -110,7 +110,7 @@ def main():
 
     # Initialise routing state 
     if "current_page" not in st.session_state:
-        st.session_state.current_page = "login"
+        st.session_state.current_page = "symptom_checker"  # default landing page
     page = st.session_state.current_page
 
     # set page config (only on non-login/register pages) 
